@@ -1,0 +1,83 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "beta-plans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "people",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bubbl-plans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "people",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "server",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bubbl-plans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "people",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bubbl-plans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "server",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "visibility",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bubbl-plans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "visibility",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
