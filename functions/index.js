@@ -36,8 +36,8 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
 
     //if 
     var info = await snap.data()
-    var currServer = snap.data()["server"]
-    var planVisibility = snap.data()["visibilty"]
+    var currServer = info["server"]
+    var planVisibility = info["visibility"]
 
     var fcmTokens = []
     var senderName
@@ -54,22 +54,27 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
     })
     
     //if visibility == public
+    
+    var usersChecked = []
 
     if (planVisibility == "public") {
+        console.log("public visibility")
         await db.collection("bubbl-users").where("server","==",currServer).get().then(async querySnap => {
 
             await querySnap.forEach(async doc=> {
                 if (doc.exists && doc.data() != null) {
+                    
                     var userId = doc.id
                     var userInfo = await doc.data()
     
-                if (userInfo["username"] != null) {
-                    var fcm = userInfo["fcmToken"]
-                    if (fcm != null) {
-                        fcmTokens.push(fcm)
+                    if (userInfo["username"] != null) {
+                        var fcm = userInfo["fcmToken"]
+                        if (fcm != null) {
+                            usersChecked.push(userInfo["username"])
+                            fcmTokens.push(fcm)
+                        }
+                        
                     }
-                    
-                }
     
                 }
                 
@@ -87,7 +92,7 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
                 fcms: fcmTokens
             }
         
-            await db.collection("log-plancreate").add(message)
+            await db.collection("log-plancreate2").add(message)
         
             //send notifications
             if (fcmTokens.length > 0) {
@@ -106,10 +111,14 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
             }
     
     
+        } else {
+            console.log("fcms is null")
+            await db.collection("log-plancreate2").add({info: "no fcms"})
         }
 
     } else {
         //if visibility == selection
+        await db.collection("log-plancreate2").add({info: "not public"})
         return
     }
 
