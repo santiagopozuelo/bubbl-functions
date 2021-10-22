@@ -477,6 +477,9 @@ exports.onChatCreated = functions.firestore.document('bubbl-plans/{planId}/chats
     //send notifications
     if (fcmList.length > 0) {
         var messageSent = (chatType == "text")? info["text"] : "sent a picture"
+        if (messageSent.length > 100) {
+            messageSent = messageSent.splice(0,97)+"..."
+        }
         console.log(messageSent)
         const message = {
             data: {info: 'plan-chat'}, 
