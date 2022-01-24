@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin")
 const PlansTable = "bubbl-plans"
+const BubblsTable = "bubbls"
 const UsersTable = "bubbl-users"
 const ThoughtsTable = "bubbl-thoughts"
 const DirectsTable = "direct-messages"
@@ -31,6 +32,341 @@ const db = admin.firestore()
 //on Person likes thought sent notification to host
 
 //on person chats in thought send notification to likers
+
+exports.onBubblCreated = functions.firestore.document('bubbls/{bubblId}').onCreate(async (snap,context) => {
+
+
+    //if 
+    var info = await snap.data()
+    var currServer = info["server"]
+    var planVisibility = info["visibility"]
+    var bubblPeople = info["peopleInvited"]
+    var fcmTokens = []
+    var hostId = info["host"]
+    var bubblType = info["type"]
+    var bubblTitle = info["title"]
+
+    var senderName
+
+    await db.collection("bubbl-users").doc(info["host"]).get().then(async res => {
+        if (res.exists && res.data() != null) {
+            var userInfoSender = await res.data()
+
+            var name = await res.data()["name"]
+            senderName = name
+
+        }
+
+    })
+    
+    //if visibility == public
+    
+    var usersChecked = []
+
+    if (planVisibility == "public") {
+        console.log("public visibility")
+        await db.collection("bubbl-users").where("server","==",currServer).get().then(async querySnap => {
+
+            await querySnap.forEach(async doc=> {
+                if (doc.exists && doc.data() != null) {
+                    
+                    var userId = doc.id
+                    var userInfo = await doc.data()
+    
+                    if (userInfo["username"] != null) {
+                        var fcm = userInfo["fcmToken"]
+                        if (fcm != null) {
+                            usersChecked.push(userInfo["username"])
+                            fcmTokens.push(fcm)
+                        }
+                        
+                    }
+    
+                }
+                
+            })
+    
+        })
+
+        if (senderName == null ) {
+            senderName = "someone"
+        }
+        if (fcmTokens != null) {
+            var message = {
+                data: info["title"], 
+                bubblId: context.params.bubblId,
+                fcms: fcmTokens
+            }
+        
+            await db.collection("log-bubbl-create").add(message)
+        
+            //send notifications
+            if (fcmTokens.length > 0) {
+                const message2 = {
+                    data: {info: 'bubbl-created'}, 
+                    notification: {
+                        title: `${senderName} shared a public ${bubblType}`,
+                        body: `click to view: ${bubblTitle}`
+                    },
+                    tokens: fcmTokens
+                }
+                admin.messaging().sendMulticast(message2).then((response)=> {
+                    console.log(response.successCount)
+                })
+            
+            }
+    
+    
+        } else {
+            console.log("fcms is null")
+            await db.collection("log-bubbl-create").add({info: "no fcms"})
+        }
+
+    } else {
+        //if visibility == selection
+        //selection
+        var receiverNames = []
+        var promises = []
+        bubblPeople.forEach(async docId => {
+            if (docId != hostId) {
+                console.log("after docId not sender check")
+                    //var userData = await getUserById(doc.id)
+                    promises.push(new Promise(function (res,rej){
+                        db.collection(UsersTable).doc(docId).get().then(snap => {
+                            var currUserInfo = snap.data()
+                            if (snap.exists && currUserInfo != null && currUserInfo["fcmToken"]!= null) {
+        
+                                
+                                var fcm = currUserInfo["fcmToken"]
+                                var name = currUserInfo["name"]
+                                console.log(`fcm for ${name}: ${fcm}`)
+                                console.log(`send to ${name}`)
+                                receiverNames.push(name)
+                                fcmTokens.push(fcm)
+                                res(true)
+                            }
+                            res(false)
+                        })
+
+                    }))
+                    
+                
+
+            }
+        })
+
+        Promise.all(promises).then(async information => {
+            console.log(`receiver names: ${receiverNames}`)
+        console.log(`fcm tokens: ${fcmTokens}`)
+
+
+        if (senderName == null ) {
+            senderName = "someone"
+        }
+        if (fcmTokens != null) {
+            var message = {
+                bubblTitle: info["title"], 
+                bubblId: context.params.bubblId,
+                fcms: fcmTokens,
+                people: receiverNames
+            }
+            console.log(JSON.stringify(message))
+        
+            await db.collection("log-bubbl-create").add(message)
+        
+            //send notifications
+            if (fcmTokens.length > 0) {
+                var notificationTitle 
+                var notificationBody
+                
+                if (bubblType == "plan") {
+                    notificationTitle = `${senderName} shared a plan with you`
+                    notificationBody = `click to view the plan: ${bubblTitle}`
+                } else {
+                    notificationTitle = `${senderName} shared a thought with you`
+                    notificationBody = `click to view the move: ${bubblTitle}`
+                }
+                console.log(`notiTitle: ${notificationTitle}`)
+                console.log(`notiBody: ${notificationBody}`)
+                console.log(`fcm tokens sending: ${fcmTokens}`)
+
+                const message2 = {
+                    data: {info: 'bubbl-created'}, 
+                    notification: {
+                        title: notificationTitle,
+                        body: notificationBody
+                    },
+                    tokens: fcmTokens
+                }
+                admin.messaging().sendMulticast(message2).then((response)=> {
+                    console.log(response.successCount)
+                })
+            
+            }
+    
+    
+        }
+
+        })
+        
+    }
+
+})
+
+exports.chatBubblCreated = functions.firestore.document('bubbls/{planId}/chats/{chatId}').onCreate(async (snap,context)=> {
+    var info = snap.data()
+
+    console.log("chat created")
+    console.log(info["text"])
+    console.log(context.params.planId)
+    var senderId = info["userId"]
+    var senderName = info["name"]
+    var planId = context.params.planId
+    //var currentUser = await db.collection()
+    var notificationReceivers = []
+    var fcmList = []
+    var planRef = db.collection(BubblsTable).doc(planId)
+    
+    var planTitle
+    const getUserById = async function(userId) {
+        const userRef = await db.collection(UsersTable).doc(userId)
+        var content
+        var info = await userRef.get().then((userInfo)=> {
+            if (userInfo.exists && userInfo.data() !=null){
+                content = userInfo.data()
+            }
+            
+    
+        })
+        return content
+    
+    }
+
+    await planRef.get().then(snap =>{
+        if (snap.exists && snap.data() != null) {
+            planTitle = snap.data()["title"]
+
+        }
+    })
+
+    await planRef.collection(UsersTable).get().then(async (docs) => {
+        await docs.forEach(async doc => {
+            var subUserInfo = doc.data()
+            if (doc.id != senderId && (subUserInfo["status"] == "host" || subUserInfo["status"] == "going" || subUserInfo["status"] == "interested")) {
+                notificationReceivers.push(doc.id)
+                //var userData = await getUserById(doc.id)
+                await db.collection(UsersTable).doc(doc.id).get().then(snap => {
+                    if (snap.exists && snap.data() != null && snap.data()["username"] != null && snap.data()["fcmToken"]!= null) {
+                        var fcm = snap.data()["fcmToken"]
+                        fcmList.push(fcm)
+                    }
+                })
+                // if (userData != null && userData["fcmToken"] != null) {
+                    
+                // }
+                
+
+            }
+        })
+    })
+
+    var chatType
+    if (info["text"] != null) {
+        chatType = "text"
+    } else if(info["imageData"]) {
+        chatType = "image"
+    }
+
+    if (chatType != null) {
+        var message = {
+            message: (chatType == "text")? info["text"] : "image sent", 
+            planId: context.params.planId,
+            senderName: senderName,
+            receivers: notificationReceivers,
+            plantitle: planTitle,
+            fcms: fcmList
+        }
+    
+        await db.collection("logging").add(message)
+    
+        //send notifications
+        if (fcmList.length > 0) {
+            var messageSent = (chatType == "text")? info["text"] : "sent a picture"
+            if (messageSent.length > 100) {
+                messageSent = messageSent.splice(0,97)+"..."
+            }
+            console.log(messageSent)
+            const message = {
+                data: {info: 'bubbl-chat'}, 
+                notification: {
+                    title: `New chat on ${planTitle}`,
+                    body: `${senderName}: ${messageSent}`
+                },
+                tokens: fcmList
+            }
+            admin.messaging().sendMulticast(message).then((response)=> {
+                console.log(response.successCount)
+            })
+        
+        }
+
+    }
+
+    
+
+})
+
+exports.onBubblRsvp = functions.firestore.document('bubbls/{planId}/bubbl-users/{userId}').onCreate(async (snap, context)=> {
+    var info = snap.data()
+    var personId = snap.id
+    var personName = snap.data()["name"]
+    var planId = context.params.planId
+    var hostId
+    var planTitle = ""
+    await db.collection(BubblsTable).doc(planId).get().then(snap => {
+        if (snap.exists && snap.data()!=null) {
+            hostId = snap.data()["host"]
+            planTitle = snap.data()["title"]
+        }
+    })
+
+    var fcm
+
+    if (hostId != null && personId != hostId) {
+        await db.collection("bubbl-users").doc(hostId).get().then(async res => {
+            fcm = res.data()["fcmToken"]
+
+            var message = {
+                data: info["name"],
+                planId: context.params.planId,
+                fcms: fcm
+            }
+        
+            await db.collection("logging2").add(message)
+        
+            //send notifications
+            if (fcm != null) {
+                const message = {
+                    data: {info: 'down-to-bubbl'}, 
+                    notification: {
+                        title: `${info["name"]} is down for ${planTitle}`,
+                        body: "click to view bubbl"
+                    },
+                    tokens: [fcm]
+                }
+                admin.messaging().sendMulticast(message).then((response)=> {
+                    console.log(response.successCount)
+                })
+            
+            }
+        })
+
+
+    }
+
+
+})
+
 
 
 exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onCreate(async (snap,context) => {
