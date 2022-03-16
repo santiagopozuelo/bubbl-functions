@@ -592,6 +592,9 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
         if (senderName == null ) {
             senderName = "someone"
         }
+
+        console.log(`FCM Token ${fcmTokens}`)
+
         if (fcmTokens != null) {
             var message = {
                 data: info["title"], 
@@ -607,8 +610,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
                     data: {info: 'thought-created'}, 
                     notification: {
                         title: `${senderName} created a public thought`,
-                        body: "click to view the move",
-                        sound: "default"
+                        body: "click to view the move"
                     },
                     tokens: fcmTokens
                 }
@@ -643,7 +645,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
             }
         }));
         console.log(receiverNames)
-
+        console.log(`FCM Token ${fcmTokens}`)
 
         if (senderName == null ) {
             senderName = "someone"
@@ -665,8 +667,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
                     data: {info: 'thought-created'}, 
                     notification: {
                         title: `${senderName} shared a thought with you`,
-                        body: "click to view the move",
-                        sound: "default"
+                        body: "click to view the move"
                     },
                     tokens: fcmTokens
                 }
