@@ -624,7 +624,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
     } else {
         //selection
         var receiverNames = []
-        await Promise.all(thoughtPeople.forEach(async docId => {
+        await Promise.all(thoughtPeople.map(async docId => {
             if (docId != senderId) {
                 console.log("after docId not sender check")
                     //var userData = await getUserById(doc.id)
