@@ -58,7 +58,7 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
     if (planVisibility == "public") {
         await db.collection("bubbl-users").where("server","==",currServer).get().then(async querySnap => {
 
-            await querySnap.forEach(async doc=> {
+            await Promise.all(querySnap.doc.map(async doc=> {
                 if (doc.exists && doc.data() != null) {
                     var userId = doc.id
                     var userInfo = await doc.data()
@@ -73,7 +73,7 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
     
                 }
                 
-            })
+            }))
     
         })
 
@@ -296,7 +296,7 @@ exports.onChatCreated = functions.firestore.document('bubbl-plans/{planId}/chats
     })
 
     await planRef.collection(UsersTable).get().then(async (docs) => {
-        await docs.forEach(async doc => {
+        await Promise.all(docs.map(async doc => {
             var subUserInfo = doc.data()
             if (doc.id != senderId && (subUserInfo["status"] == "host" || subUserInfo["status"] == "going")) {
                 notificationReceivers.push(doc.id)
@@ -313,7 +313,7 @@ exports.onChatCreated = functions.firestore.document('bubbl-plans/{planId}/chats
                 
 
             }
-        })
+        }));
     })
     
     
