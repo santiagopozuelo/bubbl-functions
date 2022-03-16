@@ -143,7 +143,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
         await db.collection("bubbl-users").where("server","==",currServer).get().then(async querySnap => {
 
 
-            await querySnap.forEach(async doc=> {
+            await Promise.all(querySnap.docs.map(async doc  => {
                 if (doc.exists && doc.data() != null) {
                     var userId = doc.id
                     var userInfo = await doc.data()
@@ -161,7 +161,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
     
                 }
                 
-            })
+            }))
     
         })
         if (senderName == null ) {
@@ -182,7 +182,8 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
                     data: {info: 'thought-created'}, 
                     notification: {
                         title: `${senderName} created a thought`,
-                        body: "click to view the move"
+                        body: "click to view the move",
+                        sound: "default"
                     },
                     tokens: fcmTokens
                 }
