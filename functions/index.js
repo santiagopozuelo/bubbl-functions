@@ -108,6 +108,13 @@ exports.onBubblCreated = functions.firestore.document('bubbls/{bubblId}').onCrea
                         title: `${senderName} shared a public ${bubblType}`,
                         body: `click to view: ${bubblTitle}`
                     },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
+                    },
                     tokens: fcmTokens
                 }
                 admin.messaging().sendMulticast(message2).then((response)=> {
@@ -195,6 +202,13 @@ exports.onBubblCreated = functions.firestore.document('bubbls/{bubblId}').onCrea
                     notification: {
                         title: notificationTitle,
                         body: notificationBody
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
                     },
                     tokens: fcmTokens
                 }
@@ -302,6 +316,13 @@ exports.chatBubblCreated = functions.firestore.document('bubbls/{planId}/chats/{
                     title: `New chat on ${planTitle}`,
                     body: `${senderName}: ${messageSent}`
                 },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                        }
+                    },
+                },
                 tokens: fcmList
             }
             admin.messaging().sendMulticast(message).then((response)=> {
@@ -351,6 +372,13 @@ exports.onBubblRsvp = functions.firestore.document('bubbls/{planId}/bubbl-users/
                     notification: {
                         title: `${info["name"]} is down for ${planTitle}`,
                         body: "click to view bubbl"
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
                     },
                     tokens: [fcm]
                 }
@@ -440,6 +468,13 @@ exports.onPlanCreated = functions.firestore.document('bubbl-plans/{planId}').onC
                         title: `${senderName} shared a public plan`,
                         body: "click to view"
                     },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
+                    },
                     tokens: fcmTokens
                 }
                 admin.messaging().sendMulticast(message2).then((response)=> {
@@ -525,6 +560,13 @@ exports.onThoughtUpdated = functions.firestore.document('bubbl-thoughts/{thought
                         title: `${newLikerName} liked your thought!`,
                         body: `click to view ${thoughtTitle}`
                     },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
+                    },
                     tokens: [hostFcm]
                 }
                 
@@ -548,6 +590,7 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
     var currServer = snap.data()["server"]
     var thoughtPeople = info["people"]
     var senderId = info["userId"]
+    var thoughtTitle = info["title"]
 
     var thoughtVisibility = snap.data()["visibility"]
 
@@ -593,6 +636,10 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
             senderName = "someone"
         }
 
+        if (!thoughtTitle) {
+            thoughtTitle = "a thought"
+        }
+
         console.log(`FCM Token ${fcmTokens}`)
 
         if (fcmTokens != null) {
@@ -609,8 +656,15 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
                 const message2 = {
                     data: {info: 'thought-created'}, 
                     notification: {
-                        title: `${senderName} created a public thought`,
+                        title: `${senderName} shared a public though: ${thoughtTitle}`,
                         body: "click to view the move"
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
                     },
                     tokens: fcmTokens
                 }
@@ -650,6 +704,11 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
         if (senderName == null ) {
             senderName = "someone"
         }
+
+        if (!thoughtTitle) {
+            thoughtTitle = "a thought"
+        }
+
         if (fcmTokens != null) {
             var message = {
                 thoughtTitle: info["title"], 
@@ -666,8 +725,15 @@ exports.onThoughtCreated = functions.firestore.document('bubbl-thoughts/{thought
                 const message2 = {
                     data: {info: 'thought-created'}, 
                     notification: {
-                        title: `${senderName} shared a thought with you`,
+                        title: `${senderName} shared ${thoughtTitle}`,
                         body: "click to view the move"
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
                     },
                     tokens: fcmTokens
                 }
@@ -720,6 +786,13 @@ exports.onPersonDown = functions.firestore.document('bubbl-plans/{planId}/bubbl-
                     notification: {
                         title: `${info["name"]} is down for ${planTitle}`,
                         body: "click to view plan"
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                            }
+                        },
                     },
                     tokens: [fcm]
                 }
@@ -826,6 +899,13 @@ exports.onChatCreated = functions.firestore.document('bubbl-plans/{planId}/chats
                 title: `New chat on ${planTitle}`,
                 body: `${senderName}: ${messageSent}`
             },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: 'default',
+                    }
+                },
+            },
             tokens: fcmList
         }
         admin.messaging().sendMulticast(message).then((response)=> {
@@ -876,6 +956,13 @@ exports.onDirectChat= functions.firestore.document('direct-messages/{directId}/c
             notification: {
                 title: `${senderName} sent you a DM`,
                 body: `click to open chat`
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: 'default',
+                    }
+                },
             },
             tokens: fcmList
         }
@@ -972,6 +1059,13 @@ exports.onThoughtChat= functions.firestore.document('bubbl-thoughts/{thoughtId}/
             notification: {
                 title: `New chat on liked thought ${thoughtTitle}`,
                 body: `${senderName}: ${messageSent}`
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: 'default',
+                    }
+                },
             },
             tokens: fcmList
         }
